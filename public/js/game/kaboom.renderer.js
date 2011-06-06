@@ -44,7 +44,16 @@ function KaboomRenderer(target, game) {
   };
 
   this.playerHasMovedSinceLastDraw = function(playerDiv, serverPlayerState){
+
+    var direction = this.getPlayerDirectionFromVelocity(serverPlayerState);
+
+    if(direction != playerDiv.data('lastDirection', direction)) {
+        return true;
+    }
     if (playerDiv.data('y') != serverPlayerState.position.y || playerDiv.data('x') != serverPlayerState.position.x) {
+        return true;
+    }
+    if (playerDiv.data('dx') != serverPlayerState.velocity.dx || playerDiv.data('dy') != serverPlayerState.velocity.dy) {
         return true;
     }
     return false;
@@ -55,26 +64,16 @@ function KaboomRenderer(target, game) {
     playerDiv.data('y', serverPlayerState.position.y);
     playerDiv.data('dx', serverPlayerState.velocity.x);
     playerDiv.data('dy', serverPlayerState.velocity.y);
-  }
+
+    var direction = this.getPlayerDirectionFromVelocity(serverPlayerState);
+    playerDiv.data('lastDirection', direction);
+      
+  };
 
   this.ensureVelocityIsInitialised = function (player) {
       if(player.velocity == null){
           player.velocity = new Velocity(0,0);
       }
-  };
-
-  this.playerStateChanged = function(playerDiv, serverPlayerState){
-    if (playerDiv.data('dx') != serverPlayerState.velocity.dx || playerDiv.data('dy') != serverPlayerState.velocity.dy) {
-        return true;
-    }
-    return false;
-  };
-
-  this.playerIsMoving = function(serverPlayerState){
-    if (serverPlayerState.velocity.dx != 0 || serverPlayerState.velocity.dy != 0) {
-        return true;
-    }
-    return false;
   };
 
   this.getPlayerDirectionFromVelocity = function(player){
@@ -91,7 +90,7 @@ function KaboomRenderer(target, game) {
         }
   };
 
-    function updatePlayerSpriteForDirection(direction) {
+   this.updatePlayerSpriteForDirection = function (direction) {
         if (direction === "up") {
 
         } else if (direction === "down") {
@@ -103,9 +102,9 @@ function KaboomRenderer(target, game) {
         } else if (direction === "stopped") {
 
         }
-    }
+    };
 
-    this.updatePlayer = function(playerId, player) {
+ this.updatePlayer = function(playerId, player) {
         var playerDiv = $('#player_' + (playerId + 1));
         if (!playerDiv.data('isInPlay')) {
             this.makePlayerActive(playerDiv);
@@ -124,15 +123,11 @@ function KaboomRenderer(target, game) {
         this.ensureVelocityIsInitialised(player);
         this.cacheLatestPlayerData(playerDiv, player);
 
-        if (this.playerStateChanged(playerDiv, player)) {
-            if (this.playerIsMoving(player)) {
-                var direction = this.getPlayerDirectionFromVelocity(player);
-                updatePlayerSpriteForDirection(direction);
-            }
-        }
+        var direction = this.getPlayerDirectionFromVelocity(player);
+        this.updatePlayerSpriteForDirection(direction);
     };
 
-    this.updatePlayerLocations = function() {
+ this.updatePlayerLocations = function() {
     for (var i = 0; i < game.players.length; i++) {
         var player = game.players[i];
         if (player != null) {
