@@ -30,57 +30,114 @@ function KaboomRenderer(target, game) {
   };
   
   this.createPlayer = function(num) {
-    var playerDiv = $('<div id="player_' + num + '" class="player" />');
-    
+    var playerDiv = $('<div id="player_' + num + '" class="player" style="width: 36px;" />');
+
+	playerDiv.sprite({fps: 3, no_of_frames: 3}).active();
+    playerDiv.spStart();
+
     target.holding.append(playerDiv);
   };
-  
-  this.updatePlayerLocations = function() {
-    for (var i = 0; i < game.players.length; i++) {
-      var player = game.players[i];
-      
-      if (player != null) {
-        var playerDiv = $('#player_' + (i + 1));
-        
-        if (!playerDiv.data('isInPlay')) {
-          target.playerLayer.append(playerDiv);
-          playerDiv.data('isInPlay', true);
+
+  this.makePlayerActive = function(playerDiv){
+      target.playerLayer.append(playerDiv);
+      playerDiv.data('isInPlay', true);
+  };
+
+  this.playerHasMovedSinceLastDraw = function(playerDiv, serverPlayerState){
+    if (playerDiv.data('y') != serverPlayerState.position.y || playerDiv.data('x') != serverPlayerState.position.x) {
+        return true;
+    }
+    return false;
+  };
+
+  this.cacheLatestPlayerData = function(playerDiv, serverPlayerState){
+    playerDiv.data('x', serverPlayerState.position.x);
+    playerDiv.data('y', serverPlayerState.position.y);
+    playerDiv.data('dx', serverPlayerState.velocity.x);
+    playerDiv.data('dy', serverPlayerState.velocity.y);
+  }
+
+  this.ensureVelocityIsInitialised = function (player) {
+      if(player.velocity == null){
+          player.velocity = new Velocity(0,0);
+      }
+  };
+
+  this.playerStateChanged = function(playerDiv, serverPlayerState){
+    if (playerDiv.data('dx') != serverPlayerState.velocity.dx || playerDiv.data('dy') != serverPlayerState.velocity.dy) {
+        return true;
+    }
+    return false;
+  };
+
+  this.playerIsMoving = function(serverPlayerState){
+    if (serverPlayerState.velocity.dx != 0 || serverPlayerState.velocity.dy != 0) {
+        return true;
+    }
+    return false;
+  };
+
+  this.getPlayerDirectionFromVelocity = function(player){
+        if (player.velocity.dy < 0) {
+            return "down";
+        } else if (player.velocity.dy > 0) {
+            return "up";
+        } else if (player.velocity.dx < 0) {
+            return "left";
+        } else if (player.velocity.dx > 0) {
+            return "right";
+        } else{
+            return "stopped";
         }
-        
-        if (playerDiv.data('y') != player.position.y && playerDiv.data('x') != player.position.x) {
-          playerDiv.css({
+  };
+
+    function updatePlayerSpriteForDirection(direction) {
+        if (direction === "up") {
+
+        } else if (direction === "down") {
+
+        } else if (direction === "left") {
+
+        } else if (direction === "right") {
+
+        } else if (direction === "stopped") {
+
+        }
+    }
+
+    this.updatePlayer = function(playerId, player) {
+        var playerDiv = $('#player_' + (playerId + 1));
+        if (!playerDiv.data('isInPlay')) {
+            this.makePlayerActive(playerDiv);
+        }
+
+        if (!this.playerHasMovedSinceLastDraw(playerDiv, player)) {
+            return;
+        }
+
+        playerDiv.css({
             position: 'absolute',
             top: player.position.y + 'px',
             left: player.position.x + 'px'
-          });
-          playerDiv.data('x', player.position.x);
-          playerDiv.data('y', player.position.y);
+        });
 
-			if (player.velocity != null){
-			
-				if (player.velocity.dx == 0 && player.velocity.dy == 0){				
-					playerDiv.destroy();
-				}
-				else {				
-					if (player.velocity.dy < 0){		
-						playerDiv.css({background: 'url(images/walk-down-sprite.png)'});
-					}
-					else if (player.velocity.dy > 0){		
-						playerDiv.css({background: 'url(images/walk-up-sprite.png)'});
-					}
-					else if (player.velocity.dx < 0){		
-						playerDiv.css({background: 'url(images/walk-left-sprite.png)'});
-					}
-					else if (player.velocity.dx > 0){		
-						playerDiv.css({background: 'url(images/walk-right-sprite.png)'});
-					}
-					
-					playerDiv.sprite({fps: 4, no_of_frames: 2});
-				}
-			}
-						  
+        this.ensureVelocityIsInitialised(player);
+        this.cacheLatestPlayerData(playerDiv, player);
+
+        if (this.playerStateChanged(playerDiv, player)) {
+            if (this.playerIsMoving(player)) {
+                var direction = this.getPlayerDirectionFromVelocity(player);
+                updatePlayerSpriteForDirection(direction);
+            }
         }
-      }
+    };
+
+    this.updatePlayerLocations = function() {
+    for (var i = 0; i < game.players.length; i++) {
+        var player = game.players[i];
+        if (player != null) {
+            this.updatePlayer(i, player);
+        }
     }
   };
   
